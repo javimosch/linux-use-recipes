@@ -63,3 +63,37 @@ tree with the web document. When scanning for page elements, restrict to
 the `document web` subtree (path under the web area), or you'll "find"
 the wrong link/button — e.g. clicking a post's `save` action instead of
 a comment form's.
+
+## 6. `paste` into a rich-text composer flattens blank lines
+
+Clipboard paste (`paste` → clipboard+ctrl_v) into a contenteditable
+composer — verified on the LinkedIn post composer, 2026-09-24 —
+delivers every paragraph but the site **normalizes the whitespace**: the
+published post rendered as a dense wall with no blank lines between
+paragraphs, even though the a11y tree showed each paragraph as a
+separate `static` element before submit.
+
+The trap: **the a11y tree looking right does not mean the render is
+right.** Paragraph-statics existing ≠ blank lines surviving.
+
+Fix: paste paragraph-by-paragraph, synthesizing the breaks yourself:
+
+```bash
+linux-use act "$entry_ref"            # focus
+while IFS= read -r para; do
+  [[ -z "$para" ]] && { linux-use key Return; continue; }
+  linux-use paste "$para"
+  linux-use key Return                # paragraph break the editor keeps
+done < post.txt
+```
+
+(If `Return` submits instead of breaking in a given composer, use
+`shift+Return` — check the site's convention before the real text.)
+
+And verify the *visual*, not just the tree: `DISPLAY=:99 import -window
+root shot.png` and look at the spacing before pressing the submit
+button. On LinkedIn, `Publicar` is final — there is no edit preview.
+
+Related: `read <entry_ref>` on a contenteditable under-reports (it said
+`chars:2` for a 1400-char paste). Verify content via `state` statics or
+the screenshot, not `read`.
